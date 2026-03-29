@@ -313,4 +313,17 @@ namespace PktDefTests
 
 
 	};
+
+	TEST_CLASS(test)
+	{
+	public:
+
+		TEST_METHOD(TestMethod1)
+		{
+			Assert::IsTrue(true);
+		}
+
+
+	};
+
 }
