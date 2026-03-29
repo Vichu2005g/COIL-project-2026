@@ -57,7 +57,12 @@ public:
         memset(&SvrAddr, 0, sizeof(SvrAddr));
 
         WSADATA wsaData;
-        WSAStartup(MAKEWORD(2, 2), &wsaData);
+        int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+        if (result != 0)
+        {
+            std::cout << "WSAStartup failed with error: " << result << std::endl;
+        }
 
         SvrAddr.sin_family = AF_INET;
         SvrAddr.sin_port = htons(Port);
@@ -67,6 +72,23 @@ public:
         // create socket here
         // bind if server
         // listen if TCP server
+
+        if (mySocket == TCP)
+            WelcomeSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        else
+            WelcomeSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+        // Bind if server
+        if (connectionType == SERVER)
+        {
+            bind(WelcomeSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr));
+
+            // Listen if TCP server
+            if (mySocket == TCP)
+            {
+                listen(WelcomeSocket, SOMAXCONN);
+            }
+        }
     }
 
     ~MySocket()
@@ -106,6 +128,20 @@ public:
         // TODO:
         // shutdown and close TCP socket
         // bTCPConnect = false
+
+        // Prevent UDP from calling TCP disconnect
+        if (mySocket != TCP)
+            return;
+
+        if (bTCPConnect)
+        {
+            shutdown(ConnectionSocket, SD_BOTH);
+            closesocket(ConnectionSocket);
+
+            bTCPConnect = false;
+            ConnectionSocket = INVALID_SOCKET;
+        }
+
 	} // implemented by Vishwaanth
 
     void ConnectUDP() {
