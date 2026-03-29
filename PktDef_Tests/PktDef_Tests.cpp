@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "../PktDef/Packet.h"
+#include "../PktDef/Socket.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -314,15 +315,97 @@ namespace PktDefTests
 
 	};
 
-	TEST_CLASS(test)
+	TEST_CLASS(SocketTests)
 	{
 	public:
-
-		TEST_METHOD(TestMethod1)
+		TEST_METHOD(Test_ConnectUDP_Server_CreatesAndBindsSocket)
 		{
-			Assert::IsTrue(true);
+			// Arrange: Create a UDP Server on port 8081
+			MySocket sock(SERVER, "127.0.0.1", 8081, UDP, 1024);
+
+			// Act
+			sock.ConnectUDP();
+
+			// Assert State
+			Assert::IsTrue(sock.IsConnectionSocketValid(), L"ConnectionSocket should be valid after ConnectUDP for a server.");
+
+			// Assert Values
+			Assert::AreEqual(8081, sock.GetPort(), L"Port should match the initialized value.");
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr(), L"IP Address should match the initialized value.");
+			Assert::AreEqual((int)SERVER, (int)sock.GetType(), L"SocketType should be SERVER.");
 		}
 
+		TEST_METHOD(Test_ConnectUDP_Client_CreatesSocket)
+		{
+			// Arrange: Create a UDP Client on port 8082
+			MySocket sock(CLIENT, "127.0.0.1", 8082, UDP, 1024);
+
+			// Act
+			sock.ConnectUDP();
+
+			// Assert State
+			Assert::IsTrue(sock.IsConnectionSocketValid(), L"ConnectionSocket should be valid after ConnectUDP for a client.");
+
+			// Assert Values
+			Assert::AreEqual(8082, sock.GetPort(), L"Port should match the initialized value.");
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr(), L"IP Address should match the initialized value.");
+			Assert::AreEqual((int)CLIENT, (int)sock.GetType(), L"SocketType should be CLIENT.");
+		}
+
+		TEST_METHOD(Test_ConnectUDP_OnTCP_FailsSafely)
+		{
+			// Arrange: Create a TCP Server (ConnectUDP should not work here)
+			MySocket sock(SERVER, "127.0.0.1", 8083, TCP, 1024);
+
+			// Act
+			sock.ConnectUDP();
+
+			// Assert State
+			Assert::IsFalse(sock.IsConnectionSocketValid(), L"ConnectionSocket should remain invalid if ConnectUDP is called on a TCP socket.");
+
+			// Assert Values remain untouched
+			Assert::AreEqual(8083, sock.GetPort());
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
+			Assert::AreEqual((int)SERVER, (int)sock.GetType());
+		}
+
+		TEST_METHOD(Test_DisconnectUDP_ClosesSocket)
+		{
+			// Arrange: Create and connect a UDP socket
+			MySocket sock(CLIENT, "127.0.0.1", 8084, UDP, 1024);
+			sock.ConnectUDP();
+
+			// Verify it's open first
+			Assert::IsTrue(sock.IsConnectionSocketValid(), L"Setup failed: Socket should be open before disconnecting.");
+
+			// Act
+			sock.DisconnectUDP();
+
+			// Assert State
+			Assert::IsFalse(sock.IsConnectionSocketValid(), L"ConnectionSocket should be invalid after DisconnectUDP is called.");
+
+			// Assert Values remain intact after disconnection
+			Assert::AreEqual(8084, sock.GetPort());
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
+			Assert::AreEqual((int)CLIENT, (int)sock.GetType());
+		}
+
+		TEST_METHOD(Test_DisconnectUDP_OnTCP_FailsSafely)
+		{
+			// Arrange: Create a TCP socket
+			MySocket sock(CLIENT, "127.0.0.1", 8085, TCP, 1024);
+
+			// Act
+			sock.DisconnectUDP();
+
+			// Assert State
+			Assert::IsFalse(sock.IsConnectionSocketValid());
+
+			// Assert Values
+			Assert::AreEqual(8085, sock.GetPort());
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
+			Assert::AreEqual((int)CLIENT, (int)sock.GetType());
+		}
 
 	};
 

@@ -90,7 +90,11 @@ public:
         }
 
         WSACleanup();
-    } 
+    }
+
+    bool IsConnectionSocketValid() {
+        return ConnectionSocket != INVALID_SOCKET;
+    }
 
     void ConnectTCP()
     {
@@ -108,13 +112,60 @@ public:
         // bTCPConnect = false
 	} // implemented by Vishwaanth
 
-    void ConnectUDP() {
+    void ConnectUDP()
+    {
+        // Ensure this method is only used for UDP configurations
+        if (connectionType != UDP)
+        {
+            std::cout << "Error: Socket is not configured for UDP.\n";
+            return;
+        }
 
-	} // implemented by Anh Dung Phan
+        // Create the UDP socket (SOCK_DGRAM)
+        ConnectionSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (ConnectionSocket == INVALID_SOCKET)
+        {
+            std::cout << "Error creating UDP socket: " << WSAGetLastError() << "\n";
+            WSACleanup();
+            return;
+        }
 
-    void DisconnectUDP() {
+        // If this MySocket is configured as a SERVER, we must bind it to the port to receive data
+        if (mySocket == SERVER)
+        {
+            if (bind(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr)) == SOCKET_ERROR)
+            {
+                std::cout << "UDP Bind failed: " << WSAGetLastError() << "\n";
+                closesocket(ConnectionSocket);
+                ConnectionSocket = INVALID_SOCKET;
+                WSACleanup();
+                return;
+            }
+            std::cout << "UDP Server bound and ready to receive.\n";
+        }
+        else
+        {
+            std::cout << "UDP Client ready to send.\n";
+        }
+    }
 
-	} // implemented by Ann Dung Phan
+    void DisconnectUDP()
+    {
+        if (connectionType != UDP)
+        {
+            std::cout << "Error: Socket is not configured for UDP.\n";
+            return;
+        }
+
+        // UDP is connectionless, so "disconnecting" simply means closing the socket
+        if (ConnectionSocket != INVALID_SOCKET)
+        {
+            closesocket(ConnectionSocket);
+            WSACleanup();
+            ConnectionSocket = INVALID_SOCKET;
+            std::cout << "UDP socket closed.\n";
+        }
+    }
 
     void SendData(const char* data, int len)
     {
