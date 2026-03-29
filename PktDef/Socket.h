@@ -160,13 +160,36 @@ public:
 	} // implemented by Ann Dung Phan
 
 	int GetData(char* dest) // implemented by Amna
+	{
+    if (dest == nullptr)
+        return -1;
+
+    int bytesReceived = 0;
+
+    // clearing internal buffer
+    memset(Buffer, 0, MaxSize);
+
+    if (connectionType == TCP)
     {
-        // TODO:
-        // TCP -> recv()
-        // UDP -> recvfrom()
-        // copy Buffer to dest
-        return 0;
-    } 
+        // receive data from TCP connection
+        bytesReceived = recv(ConnectionSocket, Buffer, MaxSize, 0);
+    }
+    else // UDP
+    {
+        int addrLen = sizeof(SvrAddr);
+        bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0,
+                                 (sockaddr*)&SvrAddr, &addrLen);
+    }
+
+    // If error or nothing received
+    if (bytesReceived <= 0)
+        return bytesReceived;
+
+    // Copying data from internal buffer to destination
+    memcpy(dest, Buffer, bytesReceived);
+
+    return bytesReceived;
+	}
 
     std::string GetIPAddr()
     {
