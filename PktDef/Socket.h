@@ -262,7 +262,7 @@ public:
         {
             std::cout << "UDP Client ready to send.\n";
         }
-    }
+	} // Implemented by Ann Dung Phan
 
     void DisconnectUDP()
     {
@@ -284,10 +284,26 @@ public:
 
     void SendData(const char* data, int len)
     {
-        // TODO:
-        // TCP -> send()
-        // UDP -> sendto()
-	} // implemented by Ann Dung Phan
+        if (mySocket == TCP)
+        {
+            if (bTCPConnect)
+            {
+                send(ConnectionSocket, data, len, 0);
+            }
+        }
+        else // UDP
+        {
+            sendto(
+                WelcomeSocket,
+                data,
+                len,
+                0,
+                (sockaddr*)&SvrAddr,
+                sizeof(SvrAddr)
+            );
+        }
+    }
+    // implemented by Vishwaanth
 
 	int GetData(char* dest) // implemented by Amna
 	{
