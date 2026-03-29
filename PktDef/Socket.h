@@ -114,14 +114,93 @@ public:
         WSACleanup();
     } 
 
+    // Implemented by Jason Little
     void ConnectTCP()
     {
-        // TODO:
-        // if UDP, do nothing or error
-        // if CLIENT TCP -> connect()
-        // if SERVER TCP -> accept()
-        // set bTCPConnect = true
-	} // implemented by Jason Little
+        // 1. Prevent UDP from using TCP connect logic
+        if (connectionType == UDP)
+        {
+            std::cout << "ERROR: Cannot call ConnectTCP() on a UDP socket.\n";
+            return;
+        }
+
+        // 2. Prevent reconnecting if already connected
+        if (bTCPConnect)
+        {
+            std::cout << "TCP connection already established.\n";
+            return;
+        }
+
+
+        // CLIENT TCP LOGIC
+        if (mySocket == CLIENT)
+        {
+            ConnectionSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (ConnectionSocket == INVALID_SOCKET)
+            {
+                std::cout << "ERROR: Failed to create TCP client socket.\n";
+                return;
+            }
+
+            int result = connect(ConnectionSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr));
+            if (result == SOCKET_ERROR)
+            {
+                std::cout << "ERROR: TCP client connect() failed.\n";
+                closesocket(ConnectionSocket);
+                ConnectionSocket = INVALID_SOCKET;
+                return;
+            }
+
+            bTCPConnect = true;
+            std::cout << "TCP CLIENT connected successfully.\n";
+            return;
+        }
+
+
+        // SERVER TCP LOGIC
+        if (mySocket == SERVER)
+        {
+            WelcomeSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (WelcomeSocket == INVALID_SOCKET)
+            {
+                std::cout << "ERROR: Failed to create TCP server socket.\n";
+                return;
+            }
+
+            // Bind server socket
+            if (bind(WelcomeSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr)) == SOCKET_ERROR)
+            {
+                std::cout << "ERROR: TCP server bind() failed.\n";
+                closesocket(WelcomeSocket);
+                WelcomeSocket = INVALID_SOCKET;
+                return;
+            }
+
+            // Listen for incoming connections
+            if (listen(WelcomeSocket, SOMAXCONN) == SOCKET_ERROR)
+            {
+                std::cout << "ERROR: TCP server listen() failed.\n";
+                closesocket(WelcomeSocket);
+                WelcomeSocket = INVALID_SOCKET;
+                return;
+            }
+
+            std::cout << "TCP SERVER listening...\n";
+
+            // Accept a client
+            ConnectionSocket = accept(WelcomeSocket, nullptr, nullptr);
+            if (ConnectionSocket == INVALID_SOCKET)
+            {
+                std::cout << "ERROR: TCP server accept() failed.\n";
+                closesocket(WelcomeSocket);
+                WelcomeSocket = INVALID_SOCKET;
+                return;
+            }
+
+            bTCPConnect = true;
+            std::cout << "TCP SERVER accepted a client.\n";
+        }
+    }
      
     void DisconnectTCP()
     {
