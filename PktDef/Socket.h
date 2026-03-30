@@ -72,22 +72,14 @@ public:
         // create socket here
         // bind if server
         // listen if TCP server
-
-        if (mySocket == TCP)
-            WelcomeSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        else
-            WelcomeSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-        // Bind if server
-        if (connectionType == SERVER)
+        // Initialize WelcomeSocket only if it's a TCP Server
+        if (mySocket == SERVER && connectionType == TCP)
         {
-            bind(WelcomeSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr));
+            WelcomeSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-            // Listen if TCP server
-            if (mySocket == TCP)
-            {
-                listen(WelcomeSocket, SOMAXCONN);
-            }
+            // Bind the TCP Server
+            bind(WelcomeSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr));
+            listen(WelcomeSocket, SOMAXCONN);
         }
     }
 
@@ -213,7 +205,7 @@ public:
         // bTCPConnect = false
 
         // Prevent UDP from calling TCP disconnect
-        if (mySocket != TCP)
+        if (connectionType != TCP)
             return;
 
         if (bTCPConnect)
@@ -253,7 +245,6 @@ public:
                 std::cout << "UDP Bind failed: " << WSAGetLastError() << "\n";
                 closesocket(ConnectionSocket);
                 ConnectionSocket = INVALID_SOCKET;
-                WSACleanup();
                 return;
             }
             std::cout << "UDP Server bound and ready to receive.\n";
@@ -276,7 +267,6 @@ public:
         if (ConnectionSocket != INVALID_SOCKET)
         {
             closesocket(ConnectionSocket);
-            WSACleanup();
             ConnectionSocket = INVALID_SOCKET;
             std::cout << "UDP socket closed.\n";
         }
@@ -284,7 +274,7 @@ public:
 
     void SendData(const char* data, int len)
     {
-        if (mySocket == TCP)
+        if (connectionType == TCP)
         {
             if (bTCPConnect)
             {
@@ -294,7 +284,7 @@ public:
         else // UDP
         {
             sendto(
-                WelcomeSocket,
+                ConnectionSocket,
                 data,
                 len,
                 0,
@@ -322,9 +312,9 @@ public:
         }
         else // UDP
         {
-            int addrLen = sizeof(SvrAddr);
-            bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0,
-                                     (sockaddr*)&SvrAddr, &addrLen);
+            sockaddr_in senderAddr;					//Client Address for sending responses
+            int len = sizeof(struct sockaddr_in);	//Length parameter for the recvfrom function call
+            bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0, (sockaddr*)&senderAddr, &len);
         }
 
         // If error or nothing received
