@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
 #include <iostream>
+#include <cstring>
 #include <fstream>
+#include <cstring>
 
 const int EmptyPktSize = 6;					//Number of data bytes in a packet with no data field
 

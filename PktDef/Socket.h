@@ -3,6 +3,7 @@
 #include <ws2tcpip.h>
 #include <string>
 #include <iostream>
+#include <cstring>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -209,7 +210,7 @@ public:
         // bTCPConnect = false
 
         // Prevent UDP from calling TCP disconnect
-        if (mySocket != TCP)
+        if (connectionType != TCP)
             return;
 
         if (bTCPConnect)
@@ -302,6 +303,11 @@ public:
     int GetPort()
     {
         return Port;
+    }
+
+    bool IsConnected() const
+    {
+        return bTCPConnect;
     }
 
     SocketType GetType()

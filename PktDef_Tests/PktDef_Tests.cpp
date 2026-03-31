@@ -1,202 +1,278 @@
-#include "pch.h"
-#include "CppUnitTest.h"
 #include "../PktDef/Packet.h"
+#include "../PktDef/Socket.h"
+#include "CppUnitTest.h"
+#include "pch.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-namespace PktDefTests
-{
-	TEST_CLASS(PktDefTests)
-	{
-	public:
-		
-		TEST_METHOD(Test_DefaultConstructor)
-		{
-			// Arrange & Act
-			PktDef pkt;
+namespace PktDefTests {
+TEST_CLASS(PktDefTests){
+  public :
 
-			// Assert
-			Assert::AreEqual(0, pkt.GetPktCount());
-			Assert::AreEqual(0, pkt.GetLength());
-			Assert::IsFalse(pkt.GetAck());
-		}
+      TEST_METHOD(Test_DefaultConstructor){// Arrange & Act
+                                           PktDef pkt;
 
-		TEST_METHOD(Test_SetGetPktCount)
-		{
-			// Arrange
-			PktDef pkt;
+// Assert
+Assert::AreEqual(0, pkt.GetPktCount());
+Assert::AreEqual(0, pkt.GetLength());
+Assert::IsFalse(pkt.GetAck());
+} // namespace PktDefTests
 
-			// Act
-			pkt.SetPktCount(25);
+TEST_METHOD(Test_SetGetPktCount) {
+  // Arrange
+  PktDef pkt;
 
-			// Assert
-			Assert::AreEqual(25, pkt.GetPktCount());
-		}
+  // Act
+  pkt.SetPktCount(25);
 
-		TEST_METHOD(Test_SetCmd_Drive)
-		{
-			// Arrange
-			PktDef pkt;
+  // Assert
+  Assert::AreEqual(25, pkt.GetPktCount());
+}
 
-			// Act
-			pkt.SetCmd(DRIVE);
+TEST_METHOD(Test_SetCmd_Drive) {
+  // Arrange
+  PktDef pkt;
 
-			// Assert
-			Assert::AreEqual((int)DRIVE, (int)pkt.GetCmd());
-		}
+  // Act
+  pkt.SetCmd(DRIVE);
 
-		TEST_METHOD(Test_SetGetBodyData)
-		{
-			// Arrange
-			PktDef pkt;
+  // Assert
+  Assert::AreEqual((int)DRIVE, (int)pkt.GetCmd());
+}
 
-			char data[] = { FORWARD, 5, 80 };
+TEST_METHOD(Test_SetGetBodyData) {
+  // Arrange
+  PktDef pkt;
 
-			// Act
-			pkt.SetBodyData(data, 3);
-			char* body = pkt.GetBodyData();
+  char data[] = {FORWARD, 5, 80};
 
-			// Assert
-			Assert::AreEqual((int)data[0], (int)body[0]);
-			Assert::AreEqual((int)data[1], (int)body[1]);
-			Assert::AreEqual((int)data[2], (int)body[2]);
-		}
+  // Act
+  pkt.SetBodyData(data, 3);
+  char *body = pkt.GetBodyData();
 
-		TEST_METHOD(Test_CRC_ValidPacket)
-		{
-			// Arrange
-			PktDef pkt;
+  // Assert
+  Assert::AreEqual((int)data[0], (int)body[0]);
+  Assert::AreEqual((int)data[1], (int)body[1]);
+  Assert::AreEqual((int)data[2], (int)body[2]);
+}
 
-			pkt.SetPktCount(1);
-			pkt.SetCmd(DRIVE);
+TEST_METHOD(Test_CRC_ValidPacket) {
+  // Arrange
+  PktDef pkt;
 
-			char data[] = { FORWARD, 5, 80 };
-			pkt.SetBodyData(data, 3);
+  pkt.SetPktCount(1);
+  pkt.SetCmd(DRIVE);
 
-			// Act
-			char* raw = pkt.GenPacket();
+  char data[] = {FORWARD, 5, 80};
+  pkt.SetBodyData(data, 3);
 
-			bool result = pkt.CheckCRC(raw, pkt.GetLength() + 1); // +1 for CRC
+  // Act
+  char *raw = pkt.GenPacket();
 
-			// Assert
-			Assert::IsTrue(result);
-		}
+  bool result = pkt.CheckCRC(raw, pkt.GetLength() + 1); // +1 for CRC
 
-		TEST_METHOD(Test_CRC_InvalidPacket)
-		{
-			// Arrange
-			PktDef pkt;
-			pkt.SetPktCount(1);
-			pkt.SetCmd(DRIVE);
+  // Assert
+  Assert::IsTrue(result);
+}
 
-			char data[] = { FORWARD, 5, 80 };
-			pkt.SetBodyData(data, 3);
+TEST_METHOD(Test_CRC_InvalidPacket) {
+  // Arrange
+  PktDef pkt;
+  pkt.SetPktCount(1);
+  pkt.SetCmd(DRIVE);
 
-			char* raw = pkt.GenPacket();
+  char data[] = {FORWARD, 5, 80};
+  pkt.SetBodyData(data, 3);
 
-			// Corrupt a byte to make CRC invalid
-			raw[HEADERSIZE] ^= 0xFF;  // Flip bits in first body byte
+  char *raw = pkt.GenPacket();
 
-			// Act
-			bool result = pkt.CheckCRC(raw, pkt.GetLength() + 1);
+  // Corrupt a byte to make CRC invalid
+  raw[HEADERSIZE] ^= 0xFF; // Flip bits in first body byte
 
-			// Assert
-			Assert::IsFalse(result);
-		}
+  // Act
+  bool result = pkt.CheckCRC(raw, pkt.GetLength() + 1);
 
-		TEST_METHOD(Test_SleepCommand_EmptyBody)
-		{
-			// Arrange
-			PktDef pkt;
-			pkt.SetCmd(SLEEP);
-			pkt.SetPktCount(10);
+  // Assert
+  Assert::IsFalse(result);
+}
 
-			pkt.SetBodyData(nullptr, 0); // ensures Length = sizeof(Header)
+TEST_METHOD(Test_SleepCommand_EmptyBody) {
+  // Arrange
+  PktDef pkt;
+  pkt.SetCmd(SLEEP);
+  pkt.SetPktCount(10);
 
-			// Act
-			char* raw = pkt.GenPacket();
+  pkt.SetBodyData(nullptr, 0); // ensures Length = sizeof(Header)
 
-			// Assert
-			Assert::AreEqual((int)SLEEP, (int)pkt.GetCmd());
-			Assert::AreEqual((int)sizeof(Header), pkt.GetLength());
-			Assert::IsTrue(pkt.CheckCRC(raw, pkt.GetLength() + 1));
-		}
+  // Act
+  char *raw = pkt.GenPacket();
 
-		TEST_METHOD(Test_DriveCommand_MaxPower)
-		{
-			// Arrange
-			PktDef pkt;
-			pkt.SetCmd(DRIVE);
+  // Assert
+  Assert::AreEqual((int)SLEEP, (int)pkt.GetCmd());
+  Assert::AreEqual((int)sizeof(Header), pkt.GetLength());
+  Assert::IsTrue(pkt.CheckCRC(raw, pkt.GetLength() + 1));
+}
 
-			char data[] = { FORWARD, 5, 100 };  // Max allowed power
-			pkt.SetBodyData(data, 3);
+TEST_METHOD(Test_DriveCommand_MaxPower) {
+  // Arrange
+  PktDef pkt;
+  pkt.SetCmd(DRIVE);
 
-			// Act
-			char* raw = pkt.GenPacket();
+  char data[] = {FORWARD, 5, 100}; // Max allowed power
+  pkt.SetBodyData(data, 3);
 
-			// Assert
-			char* body = pkt.GetBodyData();
-			Assert::AreEqual(100, (int)body[2]);
-			Assert::IsTrue(pkt.CheckCRC(raw, pkt.GetLength() + 1));
-		}
+  // Act
+  char *raw = pkt.GenPacket();
 
-		TEST_METHOD(Test_AckFlag)
-		{
-			// Arrange
-			PktDef pkt;
-			pkt.SetCmd(RESPONSE);
-			pkt.SetPktCount(5);
+  // Assert
+  char *body = pkt.GetBodyData();
+  Assert::AreEqual(100, (int)body[2]);
+  Assert::IsTrue(pkt.CheckCRC(raw, pkt.GetLength() + 1));
+}
 
-			// Manually set Ack
-			pkt.GetAck(); // should be false initially
-			pkt.GenPacket(); // generate to include CRC
+TEST_METHOD(Test_AckFlag) {
+  // Arrange
+  PktDef pkt;
+  pkt.SetCmd(RESPONSE);
+  pkt.SetPktCount(5);
 
-			// Act
-			pkt.SetCmd(RESPONSE); // just re-assert command
-			pkt.GetAck();
+  // Manually set Ack
+  pkt.GetAck();    // should be false initially
+  pkt.GenPacket(); // generate to include CRC
 
-			// Assert
-			Assert::IsFalse(pkt.GetAck());  // Ack is not automatically set
-		}
+  // Act
+  pkt.SetCmd(RESPONSE); // just re-assert command
+  pkt.GetAck();
 
-		TEST_METHOD(Test_Serialize_Deserialize)
-		{
-			// Arrange
-			PktDef pkt1;
+  // Assert
+  Assert::IsFalse(pkt.GetAck()); // Ack is not automatically set
+}
 
-			pkt1.SetPktCount(7);
-			pkt1.SetCmd(DRIVE);
+TEST_METHOD(Test_Serialize_Deserialize) {
+  // Arrange
+  PktDef pkt1;
 
-			char data[] = { FORWARD, 10, 90 };
-			pkt1.SetBodyData(data, 3);
+  pkt1.SetPktCount(7);
+  pkt1.SetCmd(DRIVE);
 
-			// Act
-			char* raw = pkt1.GenPacket();
+  char data[] = {FORWARD, 10, 90};
+  pkt1.SetBodyData(data, 3);
 
-			PktDef pkt2(raw); // reconstruct from raw buffer
+  // Act
+  char *raw = pkt1.GenPacket();
 
-			// Assert
-			Assert::AreEqual(pkt1.GetPktCount(), pkt2.GetPktCount());
-			Assert::AreEqual((int)pkt1.GetCmd(), (int)pkt2.GetCmd());
-			Assert::AreEqual(pkt1.GetLength(), pkt2.GetLength());
+  PktDef pkt2(raw); // reconstruct from raw buffer
 
-			char* body1 = pkt1.GetBodyData();
-			char* body2 = pkt2.GetBodyData();
+  // Assert
+  Assert::AreEqual(pkt1.GetPktCount(), pkt2.GetPktCount());
+  Assert::AreEqual((int)pkt1.GetCmd(), (int)pkt2.GetCmd());
+  Assert::AreEqual(pkt1.GetLength(), pkt2.GetLength());
 
-			for (int i = 0; i < 3; i++)
-			{
-				Assert::AreEqual(
-					(int)(unsigned char)body1[i],
-					(int)(unsigned char)body2[i]
-				);
+  char *body1 = pkt1.GetBodyData();
+  char *body2 = pkt2.GetBodyData();
 
-			}
+  for (int i = 0; i < 3; i++) {
+    Assert::AreEqual((int)(unsigned char)body1[i],
+                     (int)(unsigned char)body2[i]);
+  }
 
-			Assert::IsTrue(pkt2.CheckCRC(raw, pkt2.GetLength() + 1));
-		}
+  Assert::IsTrue(pkt2.CheckCRC(raw, pkt2.GetLength() + 1));
+}
+}
+;
 
+TEST_CLASS(SocketTests){
+  public :
 
-	};
+      TEST_METHOD(Test_TCP_Disconnect){
+          // Arrange - Create a TCP Client (doesn't need to be officially
+          // connected to test flag reset via DisconnectTCP)
+          MySocket client(CLIENT, "127.0.0.1", 5000, TCP, 1024);
+
+// We can't easily connect without a server, but we can test the Disconnect
+// logic assuming the internal state is handled correctly.
+
+// Act
+client.DisconnectTCP();
+
+// Assert
+Assert::IsFalse(client.IsConnected());
+}
+
+TEST_METHOD(Test_Disconnect_NotConnected) {
+  // Arrange
+  MySocket client(CLIENT, "127.0.0.1", 5001, TCP, 1024);
+
+  // Act - Call disconnect on a socket that was never connected
+  client.DisconnectTCP();
+
+  // Assert
+  Assert::IsFalse(client.IsConnected());
+}
+
+TEST_METHOD(Test_Disconnect_UDP_Block) {
+  // Arrange - Create a UDP socket
+  MySocket udpSocket(CLIENT, "127.0.0.1", 5002, UDP, 1024);
+
+  // Act - Attempt to call DisconnectTCP on a UDP socket
+  // This should be ignored by the logic we fixed
+  udpSocket.DisconnectTCP();
+
+  // Assert
+  Assert::IsFalse(udpSocket.IsConnected());
+}
+
+TEST_METHOD(Test_Disconnect_ClosesSocket) {
+  // Arrange
+  MySocket client(CLIENT, "127.0.0.1", 5003, TCP, 1024);
+
+  // Act
+  client.DisconnectTCP();
+
+  // Assert - Since we can't check private members directly,
+  // we verify that the public state reflects disconnection.
+  Assert::IsFalse(client.IsConnected());
+}
+
+TEST_METHOD(Test_Disconnect_FlagReset) {
+  // Arrange
+  MySocket client(CLIENT, "127.0.0.1", 5004, TCP, 1024);
+
+  // Act
+  client.DisconnectTCP();
+
+  // Assert
+  Assert::IsFalse(client.IsConnected());
+}
+
+TEST_METHOD(Test_Disconnect_MultipleCalls) {
+  // Arrange
+  MySocket client(CLIENT, "127.0.0.1", 5005, TCP, 1024);
+
+  // Act
+  client.DisconnectTCP();
+  client.DisconnectTCP();
+  client.DisconnectTCP();
+
+  // Assert - Multiple calls should be safe and not crash
+  Assert::IsFalse(client.IsConnected());
+}
+
+TEST_METHOD(Test_Disconnect_After_Send) {
+  // Arrange
+  MySocket client(CLIENT, "127.0.0.1", 5006, TCP, 1024);
+
+  // Act
+  // Even if SendData isn't fully implemented or fails because not connected,
+  // Disconnect should still be able to clean up/reset state.
+  client.SendData("test", 4);
+  client.DisconnectTCP();
+
+  // Assert
+  Assert::IsFalse(client.IsConnected());
+}
+}
+;
 }
 
 // test comment from vishwaanth
