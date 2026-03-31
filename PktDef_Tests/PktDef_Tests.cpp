@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "../PktDef/Packet.h"
+#include "../PktDef/Socket.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -314,16 +315,91 @@ namespace PktDefTests
 
 	};
 
-	TEST_CLASS(test)
+	TEST_CLASS(MySocketTests)
 	{
 	public:
 
-		TEST_METHOD(TestMethod1)
+		TEST_METHOD(Test_GetIPAddr)
 		{
-			Assert::IsTrue(true);
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
 		}
 
+		TEST_METHOD(Test_SetIPAddr)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			sock.SetIPAddr("192.168.1.10");
+			Assert::AreEqual(std::string("192.168.1.10"), sock.GetIPAddr());
+		}
 
+		TEST_METHOD(Test_SetPort)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			sock.SetPort(9090);
+			Assert::AreEqual(9090, sock.GetPort());
+		}
+
+		TEST_METHOD(Test_GetData_NullBuffer)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			int result = sock.GetData(nullptr);
+			Assert::AreEqual(-1, result);
+		}
+
+		TEST_METHOD(Test_GetData_Empty)
+		{
+			// This test assumes no connection has been established yet,
+			// so recv/recvfrom should fail or return <= 0.
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+
+			char buffer[1024] = { 0 };
+			int result = sock.GetData(buffer);
+
+			Assert::IsTrue(result <= 0);
+		}
+
+		TEST_METHOD(Test_GetData_TCP)
+		{
+			// Arrange
+			MySocket server(SERVER, "127.0.0.1", 5050, TCP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 5050, TCP, 1024);
+
+			const char* msg = "Hello TCP";
+			char recvBuffer[1024] = { 0 };
+
+			// Act
+			client.ConnectTCP();
+			server.ConnectTCP();
+
+			client.SendData(msg, (int)strlen(msg) + 1);
+			int bytes = server.GetData(recvBuffer);
+
+			// Assert
+			Assert::IsTrue(bytes > 0);
+			Assert::AreEqual(std::string(msg), std::string(recvBuffer));
+
+			client.DisconnectTCP();
+			server.DisconnectTCP();
+		}
+
+		TEST_METHOD(Test_GetData_UDP)
+		{
+			// Arrange
+			MySocket server(SERVER, "127.0.0.1", 6060, UDP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 6060, UDP, 1024);
+
+			const char* msg = "Hello UDP";
+			char recvBuffer[1024] = { 0 };
+
+			// Act
+			client.SendData(msg, (int)strlen(msg) + 1);
+			int bytes = server.GetData(recvBuffer);
+
+			// Assert
+			Assert::IsTrue(bytes > 0);
+			Assert::AreEqual(std::string(msg), std::string(recvBuffer));
+		}
 	};
 
 }
+
