@@ -57,6 +57,12 @@ public:
                as per the specifications provided
     *******************************************************************************/
 
+    ~PktDef()
+    {
+        delete[] packet.Data;
+        delete[] RawBuffer;
+    }
+
     // Anh Dung Phan
     PktDef(char* src) : packet{}, RawBuffer(nullptr)
     {
@@ -101,13 +107,17 @@ public:
 
     // Jason Little
     void SetBodyData(char* src, int size) {
-        if (packet.Data)
+        if (packet.Data) {
             delete[] packet.Data;
+            packet.Data = nullptr;
+        }
 
-        packet.Data = new char[size];
-        memcpy(packet.Data, src, size);
+        if (src != nullptr && size > 0) {
+            packet.Data = new char[size];
+            memcpy(packet.Data, src, size);
+        }
 
-        packet.head.Length = static_cast<unsigned char>(sizeof(Header) + size); // Set total packet length: header + body
+        packet.head.Length = static_cast<unsigned char>(sizeof(Header) + size);
     }
 
 
