@@ -3,6 +3,7 @@
 #include <ws2tcpip.h>
 #include <string>
 #include <iostream>
+#include <cstring>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -359,6 +360,11 @@ public:
     int GetPort()
     {
         return Port;
+    }
+
+    bool IsConnected() const
+    {
+        return bTCPConnect;
     }
 
     SocketType GetType()
