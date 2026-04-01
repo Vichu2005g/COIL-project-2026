@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "CppUnitTest.h"
+#include <thread>
+#include <chrono>
+#include "../PktDef/Socket.h"
 #include "../PktDef/Packet.h"
 #include "../PktDef/Socket.h"
 
@@ -534,6 +537,88 @@ namespace PktDefTests
 			closesocket(listener);
 			client.DisconnectTCP();
 		} // By Anh Dung Phan
+
+		TEST_METHOD(Test_TCP_Client_Connect)
+		{
+			MySocket server(SERVER, "127.0.0.1", 6000, TCP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 6000, TCP, 1024);
+
+			std::thread t([&]() { server.ConnectTCP(); });
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			client.ConnectTCP();
+			t.join();
+
+			Assert::IsTrue(client.IsConnected());
+			Assert::IsTrue(server.IsConnected());
+		}
+
+		TEST_METHOD(Test_TCP_Server_Connect)
+		{
+			MySocket server(SERVER, "127.0.0.1", 6001, TCP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 6001, TCP, 1024);
+
+			std::thread t([&]() { server.ConnectTCP(); });
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			client.ConnectTCP();
+			t.join();
+
+			Assert::IsTrue(server.IsConnected());
+		}
+
+		TEST_METHOD(Test_TCP_Connect_Twice)
+		{
+			MySocket client(CLIENT, "127.0.0.1", 6002, TCP, 1024);
+
+			client.ConnectTCP();
+			bool first = client.IsConnected();
+
+			client.ConnectTCP();
+			bool second = client.IsConnected();
+
+			Assert::AreEqual(first, second);
+		}
+
+		TEST_METHOD(Test_TCP_Connect_InvalidIP)
+		{
+			MySocket client(CLIENT, "256.256.256.256", 6003, TCP, 1024);
+
+			client.ConnectTCP();
+
+			Assert::IsFalse(client.IsConnected());
+		}
+
+		TEST_METHOD(Test_TCP_Connect_UDP_Block)
+		{
+			MySocket udpClient(CLIENT, "127.0.0.1", 6004, UDP, 1024);
+
+			udpClient.ConnectTCP();
+
+			Assert::IsFalse(udpClient.IsConnected());
+		}
+
+		TEST_METHOD(Test_TCP_Client_SocketCreation)
+		{
+			MySocket client(CLIENT, "127.0.0.1", 6005, TCP, 1024);
+
+			client.ConnectTCP();
+
+			Assert::IsTrue(client.GetConnectionSocket() != INVALID_SOCKET ||
+				client.IsConnected() == false);
+		}
+
+		TEST_METHOD(Test_TCP_Server_Listen)
+		{
+			MySocket server(SERVER, "127.0.0.1", 6006, TCP, 1024);
+
+			std::thread t([&]() { server.ConnectTCP(); });
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			Assert::IsTrue(server.GetWelcomeSocket() != INVALID_SOCKET);
+
+			t.detach();
+		}
 
 		// Test_SendData_UDP
 		TEST_METHOD(Test_SendData_UDP)

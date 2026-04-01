@@ -382,4 +382,24 @@ public:
 
         mySocket = type;
     }
+
+    bool IsConnected() const { 
+        
+        return bTCPConnect; 
+    
+    }
+
+    SOCKET GetConnectionSocket() const { 
+        
+        return ConnectionSocket; 
+    
+    }
+
+    SOCKET GetWelcomeSocket() const { 
+        
+        return WelcomeSocket; 
+    
+    }
+
+
 };
