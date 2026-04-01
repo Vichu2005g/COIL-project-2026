@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
 #include <iostream>
+#include <cstring>
 #include <fstream>
+#include <cstring>
 
 const int EmptyPktSize = 6;					//Number of data bytes in a packet with no data field
 
@@ -36,16 +38,6 @@ struct TurnBody {
     unsigned short int Duration;
 };
 
-struct TelemetryBody {
-    unsigned short int LastPktCounter;
-    unsigned short int CurrentGrade;
-    unsigned short int HitCount;
-    unsigned short int Heading;
-    unsigned char LastCmd;
-    unsigned char LastCmdValue;
-    unsigned char LastCmdPower;
-};
-
 class PktDef
 {
     struct CmdPacket {
@@ -68,15 +60,6 @@ public:
     STUDENTS:  You are responsible for writing the logic for the following functions
                as per the specifications provided
     *******************************************************************************/
-
-    ~PktDef()
-    {
-        if (packet.Data)
-            delete[] packet.Data;
-
-        if (RawBuffer)
-            delete[] RawBuffer;
-    }
 
     // Anh Dung Phan
     PktDef(char* src)
@@ -129,10 +112,6 @@ public:
         packet.head.Length = sizeof(Header) + size; // Set total packet length: header + body
     }
 
-    // Method to set the Acknowledgement flag 
-    void SetAck(bool value) {
-        packet.head.Ack = value ? 1 : 0;
-    }
 
 
     // Jason Little
@@ -245,6 +224,7 @@ public:
     }
 
 
+
     // Vishwaanth
     char* GenPacket() {
         if (RawBuffer) {
@@ -271,47 +251,7 @@ public:
         // Copy CRC
         memcpy(RawBuffer + sizeof(Header) + body_len, &packet.CRC, 1);  // Replaced HEADERSIZE
 
-        return RawBuffer;  // Caller must NOT delete
+        return RawBuffer;  // Caller must NOT delete (or use smart pointer)
     }
 
-    // Below functions done by Anh Dung Phan
-
-    // Checks if the packet is a telemetry response 
-    bool IsTelemetry() {
-        return (packet.head.Status == 1);
-    }
-
-    // Checks if the packet is an Acknowledgement (ACK)
-    bool IsAck() {
-        return (packet.head.Ack == 1);
-    }
-
-    // Checks if the packet is a Negative Acknowledgement (NACK)
-    bool IsNack() {
-        return (packet.head.Ack == 0);
-    }
-
-    // Transforms raw body data into a TelemetryBody struct
-    TelemetryBody GetTelemetryData() {
-        TelemetryBody telemetry;
-
-        // Zero out the struct initially to ensure it is in a safe, empty state
-        memset(&telemetry, 0, sizeof(TelemetryBody));
-
-        if (IsTelemetry() && packet.Data != nullptr) {
-
-            
-            int bodySize = packet.head.Length - sizeof(Header);
-
-            
-            if (bodySize >= sizeof(TelemetryBody)) {
-
-               
-                memcpy(&telemetry, packet.Data, sizeof(TelemetryBody));
-            }
-        }
-
-        // Return the struct by value (populated if valid, zeroes if invalid)
-        return telemetry;
-    }
 };
