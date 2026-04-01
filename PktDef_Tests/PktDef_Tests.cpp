@@ -11,8 +11,9 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // Helper to initialize WSA for the raw listener sockets
 void EnsureWSA()
 {
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
+	WSADATA wsaData{};
+	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	Assert::AreEqual(0, result, L"WSAStartup failed.");
 }
 
 // Helper to create a raw listener/receiver socket to validate MySocket's SendData

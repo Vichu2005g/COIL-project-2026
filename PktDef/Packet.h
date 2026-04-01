@@ -41,20 +41,16 @@ struct TurnBody {
 class PktDef
 {
     struct CmdPacket {
-        Header head;
-        char* Data;
-        char CRC;
-    } packet;
+        Header head{};
+        char* Data = nullptr;
+        char CRC = 0;
+    } packet{};
 
-    char* RawBuffer;
+    char* RawBuffer = nullptr;
 
 public:
     // Default Constructor - Safe State
-    PktDef() : RawBuffer(nullptr) {
-        memset(&packet.head, 0, sizeof(Header));
-        packet.Data = nullptr;
-        packet.CRC = 0;
-    };
+    PktDef() : packet{}, RawBuffer(nullptr) {}
 
     /*******************************************************************************
     STUDENTS:  You are responsible for writing the logic for the following functions
@@ -62,11 +58,13 @@ public:
     *******************************************************************************/
 
     // Anh Dung Phan
-    PktDef(char* src)
+    PktDef(char* src) : packet{}, RawBuffer(nullptr)
     {
         if (src == nullptr) return;
         packet.Data = nullptr;
-        delete RawBuffer;
+        delete[] RawBuffer;
+        RawBuffer = nullptr;
+
 
         // Extract header
         memcpy(&packet.head, src, sizeof(Header));
@@ -109,7 +107,7 @@ public:
         packet.Data = new char[size];
         memcpy(packet.Data, src, size);
 
-        packet.head.Length = sizeof(Header) + size; // Set total packet length: header + body
+        packet.head.Length = static_cast<unsigned char>(sizeof(Header) + size); // Set total packet length: header + body
     }
 
 
