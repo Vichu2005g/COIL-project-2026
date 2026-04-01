@@ -285,21 +285,33 @@ namespace PktDefTests
 			// Act
 			client.DisconnectTCP();
 
-			// Assert - Since we can't check private members directly, 
-			// we verify that the public state reflects disconnection.
-			Assert::IsFalse(client.IsConnected());
+			// Assert
+			Assert::IsFalse(client.IsConnected(), L"Client should not remain connected after DisconnectTCP.");
+			Assert::IsFalse(client.IsConnectionSocketValid(), L"Connection socket should be invalid after DisconnectTCP.");
 		} // By Vishwaanth
 
 		TEST_METHOD(Test_Disconnect_FlagReset)
 		{
 			// Arrange
+			MySocket server(SERVER, "127.0.0.1", 5004, TCP, 1024);
 			MySocket client(CLIENT, "127.0.0.1", 5004, TCP, 1024);
+
+			std::thread t([&]() { server.ConnectTCP(); });
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			client.ConnectTCP();
+			t.join();
+
+			Assert::IsTrue(client.IsConnected(), L"Client should be connected before disconnect.");
 
 			// Act
 			client.DisconnectTCP();
 
 			// Assert
-			Assert::IsFalse(client.IsConnected());
+			Assert::IsFalse(client.IsConnected(), L"DisconnectTCP should reset the TCP connection flag.");
+
+			// Cleanup
+			server.DisconnectTCP();
 		} // By Vishwaanth
 
 		TEST_METHOD(Test_Disconnect_MultipleCalls)
@@ -580,15 +592,31 @@ namespace PktDefTests
 
 		TEST_METHOD(Test_TCP_Connect_Twice)
 		{
+			// Arrange
+			MySocket server(SERVER, "127.0.0.1", 6002, TCP, 1024);
 			MySocket client(CLIENT, "127.0.0.1", 6002, TCP, 1024);
 
+			// Start server
+			std::thread t([&]() { server.ConnectTCP(); });
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			// First connect
 			client.ConnectTCP();
 			bool first = client.IsConnected();
 
+			// Second connect attempt
 			client.ConnectTCP();
 			bool second = client.IsConnected();
 
-			Assert::AreEqual(first, second);
+			t.join();
+
+			// Assert
+			Assert::IsTrue(first, L"First TCP connect should succeed.");
+			Assert::IsTrue(second, L"Second TCP connect should not break the connection state.");
+
+			// Cleanup
+			client.DisconnectTCP();
+			server.DisconnectTCP();
 		}
 
 		TEST_METHOD(Test_TCP_Connect_InvalidIP)
@@ -621,14 +649,27 @@ namespace PktDefTests
 
 		TEST_METHOD(Test_TCP_Server_Listen)
 		{
+			// Arrange
 			MySocket server(SERVER, "127.0.0.1", 6006, TCP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 6006, TCP, 1024);
 
+			// Act
 			std::thread t([&]() { server.ConnectTCP(); });
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-			Assert::IsTrue(server.GetWelcomeSocket() != INVALID_SOCKET);
+			// Assert listen socket exists
+			Assert::IsTrue(server.GetWelcomeSocket() != INVALID_SOCKET, L"Server listen socket should be valid.");
 
-			t.detach();
+			// Complete the connection so the server thread finishes cleanly
+			client.ConnectTCP();
+			t.join();
+
+			// Final assert
+			Assert::IsTrue(server.IsConnected(), L"Server should accept a client connection.");
+
+			// Cleanup
+			client.DisconnectTCP();
+			server.DisconnectTCP();
 		}
 
 		// Test_SendData_UDP
@@ -733,17 +774,16 @@ namespace PktDefTests
 		// Test_SendData_InvalidSocket
 		TEST_METHOD(Test_SendData_InvalidSocket)
 		{
-			// Note: This test does not require a listener since we expect it to safely fail internally.
-
-			// Arrange
 			MySocket sock(CLIENT, "127.0.0.1", 9021, TCP, 1024);
 			char data[] = "Orphan Data";
 
-			// Act
+			Assert::IsFalse(sock.IsConnected(), L"Socket should start disconnected.");
+			Assert::IsFalse(sock.IsConnectionSocketValid(), L"Socket should not be valid before ConnectTCP.");
+
 			sock.SendData(data, sizeof(data));
 
-			// Assert
-			Assert::IsTrue(true, L"SendData should safely ignore the transmission without crashing if bTCPConnect is false.");
+			Assert::IsFalse(sock.IsConnected(), L"SendData should not connect an unconnected TCP socket.");
+			Assert::IsFalse(sock.IsConnectionSocketValid(), L"Invalid send should not create a valid socket.");
 		} // Anh Dung Phan
 	};
 }
