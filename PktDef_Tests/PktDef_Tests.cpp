@@ -375,7 +375,7 @@ namespace PktDefTests
 			Assert::AreEqual(8083, sock.GetPort());
 			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
 			Assert::AreEqual((int)SERVER, (int)sock.GetType());
-		}
+		} // By Anh Dung Phan
 
 		TEST_METHOD(Test_DisconnectUDP_ClosesSocket)
 		{
@@ -396,7 +396,7 @@ namespace PktDefTests
 			Assert::AreEqual(8084, sock.GetPort());
 			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
 			Assert::AreEqual((int)CLIENT, (int)sock.GetType());
-		}
+		} // By Anh Dung Phan
 
 		TEST_METHOD(Test_DisconnectUDP_OnTCP_FailsSafely)
 		{
@@ -413,8 +413,88 @@ namespace PktDefTests
 			Assert::AreEqual(8085, sock.GetPort());
 			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
 			Assert::AreEqual((int)CLIENT, (int)sock.GetType());
+		} // By Anh Dung Phan
+
+		TEST_METHOD(Test_GetIPAddr)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			Assert::AreEqual(std::string("127.0.0.1"), sock.GetIPAddr());
 		}
 
+		TEST_METHOD(Test_SetIPAddr)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			sock.SetIPAddr("192.168.1.10");
+			Assert::AreEqual(std::string("192.168.1.10"), sock.GetIPAddr());
+		}
+
+		TEST_METHOD(Test_SetPort)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			sock.SetPort(9090);
+			Assert::AreEqual(9090, sock.GetPort());
+		}
+
+		TEST_METHOD(Test_GetData_NullBuffer)
+		{
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+			int result = sock.GetData(nullptr);
+			Assert::AreEqual(-1, result);
+		}
+
+		TEST_METHOD(Test_GetData_Empty)
+		{
+			// This test assumes no connection has been established yet,
+			// so recv/recvfrom should fail or return <= 0.
+			MySocket sock(CLIENT, "127.0.0.1", 8080, TCP, 1024);
+
+			char buffer[1024] = { 0 };
+			int result = sock.GetData(buffer);
+
+			Assert::IsTrue(result <= 0);
+		}
+
+		TEST_METHOD(Test_GetData_TCP)
+		{
+			// Arrange
+			MySocket server(SERVER, "127.0.0.1", 5050, TCP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 5050, TCP, 1024);
+
+			const char* msg = "Hello TCP";
+			char recvBuffer[1024] = { 0 };
+
+			// Act
+			client.ConnectTCP();
+			server.ConnectTCP();
+
+			client.SendData(msg, (int)strlen(msg) + 1);
+			int bytes = server.GetData(recvBuffer);
+
+			// Assert
+			Assert::IsTrue(bytes > 0);
+			Assert::AreEqual(std::string(msg), std::string(recvBuffer));
+
+			client.DisconnectTCP();
+			server.DisconnectTCP();
+		}
+
+		TEST_METHOD(Test_GetData_UDP)
+		{
+			// Arrange
+			MySocket server(SERVER, "127.0.0.1", 6060, UDP, 1024);
+			MySocket client(CLIENT, "127.0.0.1", 6060, UDP, 1024);
+
+			const char* msg = "Hello UDP";
+			char recvBuffer[1024] = { 0 };
+
+			// Act
+			client.SendData(msg, (int)strlen(msg) + 1);
+			int bytes = server.GetData(recvBuffer);
+
+			// Assert
+			Assert::IsTrue(bytes > 0);
+			Assert::AreEqual(std::string(msg), std::string(recvBuffer));
+		}
 
 		// Test_SendData_TCP
 		TEST_METHOD(Test_SendData_TCP)
@@ -453,7 +533,7 @@ namespace PktDefTests
 			closesocket(acceptedSocket);
 			closesocket(listener);
 			client.DisconnectTCP();
-		}
+		} // By Anh Dung Phan
 
 		// Test_SendData_UDP
 		TEST_METHOD(Test_SendData_UDP)
@@ -484,7 +564,7 @@ namespace PktDefTests
 			// Cleanup
 			closesocket(receiver);
 			client.DisconnectUDP();
-		}
+		} // By Anh Dung Phan
 
 		// Test_SendData_Empty
 		TEST_METHOD(Test_SendData_Empty)
@@ -513,7 +593,7 @@ namespace PktDefTests
 			// Cleanup
 			closesocket(receiver);
 			client.DisconnectUDP();
-		}
+		} // By Anh Dung Phan
 
 		// Test_SendData_Large
 		TEST_METHOD(Test_SendData_Large)
@@ -552,7 +632,7 @@ namespace PktDefTests
 			delete[] largeRecvBuf;
 			closesocket(receiver);
 			client.DisconnectUDP();
-		}
+		} // By Anh Dung Phan
 
 		// Test_SendData_InvalidSocket
 		TEST_METHOD(Test_SendData_InvalidSocket)
@@ -568,8 +648,6 @@ namespace PktDefTests
 
 			// Assert
 			Assert::IsTrue(true, L"SendData should safely ignore the transmission without crashing if bTCPConnect is false.");
-		}
+		} // Anh Dung Phan
 	};
 }
-
-// test comment from vishwaanth
