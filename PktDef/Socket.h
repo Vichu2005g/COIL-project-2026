@@ -74,14 +74,7 @@ public:
         // bind if server
         // listen if TCP server
         // Initialize WelcomeSocket only if it's a TCP Server
-        if (mySocket == SERVER && connectionType == TCP)
-        {
-            WelcomeSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-            // Bind the TCP Server
-            bind(WelcomeSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr));
-            listen(WelcomeSocket, SOMAXCONN);
-        }
+        
     }
 
     ~MySocket()
@@ -383,11 +376,6 @@ public:
         mySocket = type;
     }
 
-    bool IsConnected() const { 
-        
-        return bTCPConnect; 
-    
-    }
 
     SOCKET GetConnectionSocket() const { 
         

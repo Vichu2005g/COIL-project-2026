@@ -467,8 +467,11 @@ namespace PktDefTests
 			char recvBuffer[1024] = { 0 };
 
 			// Act
+			std::thread t([&]() { server.ConnectTCP(); });
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
 			client.ConnectTCP();
-			server.ConnectTCP();
+			t.join();
 
 			client.SendData(msg, (int)strlen(msg) + 1);
 			int bytes = server.GetData(recvBuffer);
@@ -491,12 +494,19 @@ namespace PktDefTests
 			char recvBuffer[1024] = { 0 };
 
 			// Act
+			server.ConnectUDP();
+			client.ConnectUDP();
+
 			client.SendData(msg, (int)strlen(msg) + 1);
 			int bytes = server.GetData(recvBuffer);
 
 			// Assert
 			Assert::IsTrue(bytes > 0);
 			Assert::AreEqual(std::string(msg), std::string(recvBuffer));
+
+			// Cleanup
+			server.DisconnectUDP();
+			client.DisconnectUDP();
 		}
 
 		// Test_SendData_TCP
