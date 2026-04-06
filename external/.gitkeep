@@ -1,0 +1,2 @@
+# This file ensures the external directory exists for the build context.
+# Please place crow_all.h in this folder.

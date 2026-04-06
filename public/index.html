@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COIL Robot Control Center</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>COIL<span>NAV</span></h1>
+                <p>Robot Command & Control GUI</p>
+            </div>
+            <div id="connection-status" class="status-badge disconnected">Disconnected</div>
+        </header>
+
+        <main class="dashboard">
+            <!-- Connection Section -->
+            <section id="connection" class="glass-card">
+                <h2>Network Configuration</h2>
+                <div class="form-group row">
+                    <div class="input-wrap">
+                        <label for="ip">Robot IP Address</label>
+                        <input type="text" id="ip" value="127.0.0.1" placeholder="0.0.0.0">
+                    </div>
+                    <div class="input-wrap">
+                        <label for="port">Control Port</label>
+                        <input type="number" id="port" value="29500">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="protocol">Protocol Selection</label>
+                    <select id="protocol">
+                        <option value="udp" selected>UDP/IP (Recommended)</option>
+                        <option value="tcp">TCP/IP</option>
+                    </select>
+                </div>
+                <button id="btn-connect" class="btn-primary">Initialize Connection</button>
+            </section>
+
+            <!-- Control Section -->
+            <section id="controls" class="glass-card">
+                <h2>Drive Commands</h2>
+                <div class="control-grid">
+                    <div class="drive-params">
+                        <div class="input-wrap">
+                            <label for="duration">Duration (sec)</label>
+                            <input type="number" id="duration" value="2" min="1" max="255">
+                        </div>
+                        <div class="input-wrap">
+                            <label for="power">Motor Power (%)</label>
+                            <input type="range" id="power" value="90" min="80" max="100">
+                            <span id="power-val">90%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="direction-pad">
+                        <button class="btn-ctrl" data-cmd="left">←</button>
+                        <div class="v-pad">
+                            <button class="btn-ctrl" data-cmd="forward">↑</button>
+                            <button class="btn-ctrl" data-cmd="backward">↓</button>
+                        </div>
+                        <button class="btn-ctrl" data-cmd="right">→</button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="btn-telemetry" class="btn-secondary">Request Telemetry</button>
+                        <button id="btn-sleep" class="btn-warn">Activate Sleep Mode</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Telemetry Section -->
+            <section id="telemetry" class="glass-card">
+                <h2>Housekeeping Telemetry</h2>
+                <div class="telemetry-grid">
+                    <div class="tel-item">
+                        <span class="label">Pkt Counter</span>
+                        <span class="value" id="tel-pkt">-</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="label">Current Grade</span>
+                        <span class="value" id="tel-grade">-</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="label">Hit Count</span>
+                        <span class="value" id="tel-hits">-</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="label">Heading</span>
+                        <span class="value" id="tel-heading">-</span>
+                    </div>
+                </div>
+                <div class="last-cmd-info">
+                    <p>Last Command: <span id="last-cmd-name">None</span></p>
+                    <div class="mini-stats">
+                        <span>Val: <b id="last-cmd-val">-</b></span>
+                        <span>Power: <b id="last-cmd-power">-</b></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Logs Section -->
+            <section id="logs" class="glass-card full-width">
+                <div class="log-header">
+                    <h2>Packet Traffic Log</h2>
+                    <button id="btn-clear-logs" class="btn-text">Clear</button>
+                </div>
+                <div id="log-view" class="log-viewer">
+                    <!-- Logs will appear here -->
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
