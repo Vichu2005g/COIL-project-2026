@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     libasio-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -16,8 +17,13 @@ WORKDIR /app
 
 # Copy source code and external libraries
 COPY src/ ./src/
-COPY external/ ./external/
+COPY public/ ./public/
 COPY CMakeLists.txt .
+
+# Ensure the external directory exists AND download crow_all.h
+# Using v1.1.0 which is a stable version with the amalgamated header
+RUN mkdir -p external && \
+    curl -L https://github.com/CrowCpp/Crow/releases/download/v1.1.0/crow_all.h -o external/crow_all.h
 
 # Build the project
 RUN mkdir build && cd build && \

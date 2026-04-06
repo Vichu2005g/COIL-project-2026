@@ -40,7 +40,7 @@ int main() {
 
         string ip = x["ip"].s();
         int port = x["port"].i();
-        string protocol = x.has("protocol") ? x["protocol"].s() : "udp";
+        string protocol = x.has("protocol") ? std::string(x["protocol"].s()) : "udp";
 
         bool success = controller.configure(ip, port, protocol);
 
