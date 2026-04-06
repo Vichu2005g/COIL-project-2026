@@ -15,7 +15,11 @@ int main() {
 
     // --- Route 1: Root (Serve GUI) ---
     CROW_ROUTE(app, "/")([]() {
-        return crow::mustache::load_text("index.html");
+        std::ifstream f("index.html");
+        if (!f.is_open()) return crow::response(404, "index.html not found");
+        std::stringstream ss;
+        ss << f.rdbuf();
+        return crow::response(ss.str());
     });
 
     // --- Route 1.1: Static Assets ---
