@@ -182,7 +182,7 @@ int MySocket::GetData(char* dest)
     else
     {
         sockaddr_in senderAddr;
-        int len = sizeof(struct sockaddr_in);
+        socklen_t len = sizeof(struct sockaddr_in);
         bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0, (sockaddr*)&senderAddr, &len);
     }
 
