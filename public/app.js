@@ -1,8 +1,7 @@
 const IP_EL = document.getElementById('ip');
 const PORT_EL = document.getElementById('port');
 const PROTO_EL = document.getElementById('protocol');
-const STATUS_BADGE = document.getElementById('connection-status');
-const OPMODE_BADGE = document.getElementById('opmode-status');
+const STATUS_EL = document.getElementById('connection-status');
 const LOG_VIEW = document.getElementById('log-view');
 const POWER_VAL = document.getElementById('power-val');
 const POWER_EL = document.getElementById('power');
@@ -61,8 +60,8 @@ document.getElementById('btn-connect').addEventListener('click', async () => {
 
     try {
         btn.disabled = true;
-        STATUS_BADGE.innerText = 'Connecting...';
-        STATUS_BADGE.className = 'status-badge disconnected';
+        STATUS_EL.innerText = 'Connecting...';
+        STATUS_EL.className = 'status-badge disconnected';
 
         const res = await fetch('/connect', {
             method: 'POST',
@@ -70,28 +69,24 @@ document.getElementById('btn-connect').addEventListener('click', async () => {
             body: JSON.stringify(data)
         });
         const result = await res.json();
-        
+
         if (result.success) {
             isConnected = true;
-            STATUS_BADGE.innerText = 'Connected';
-            STATUS_BADGE.className = 'status-badge connected';
-            OPMODE_BADGE.classList.remove('hidden');
-            setOpMode('unknown');
+            STATUS_EL.innerText = 'Connected';
+            STATUS_EL.className = 'status-badge connected';
             addLog('SYSTEM', result.message);
             updateStats(result.stats);
             hideErrors();
         } else {
             isConnected = false;
-            STATUS_BADGE.innerText = 'Disconnected';
-            STATUS_BADGE.className = 'status-badge disconnected';
-            OPMODE_BADGE.classList.add('hidden');
+            STATUS_EL.innerText = 'Disconnected';
+            STATUS_EL.className = 'status-badge disconnected';
             addLog('SYSTEM', result.message, 'error');
             showError(result.message);
         }
     } catch (err) {
         isConnected = false;
-        STATUS_BADGE.innerText = 'Disconnected';
-        OPMODE_BADGE.classList.add('hidden');
+        STATUS_EL.innerText = 'Disconnected';
         addLog('SYSTEM', 'Connection Failed: ' + err.message, 'error');
         showError('Network Error: Could not reach server.');
     } finally {
@@ -123,7 +118,7 @@ document.getElementById('btn-telemetry').addEventListener('click', async () => {
         btn.disabled = true;
         const res = await fetch('/telementry_request/');
         const result = await res.json();
-        
+
         updateTelemetry(result);
         updateStats(result.stats);
         if (result.success && result.ack) {
@@ -175,17 +170,10 @@ async function sendCommand(cmdName) {
             body: JSON.stringify(data)
         });
         const result = await res.json();
-        
+
         updateStats(result.stats);
         if (result.success && result.ack) {
             addLog('ACK', `${cmdName.toUpperCase()} - ${result.message}`);
-            
-            // Update Op Mode visually based on successful command
-            if (cmdName === 'sleep') {
-                setOpMode('sleep');
-            } else if (['forward', 'backward', 'left', 'right'].includes(cmdName)) {
-                setOpMode('active');
-            }
         } else {
             const errMsg = result.message || 'Operation Failed';
             addLog('NACK', `${cmdName.toUpperCase()} - ${errMsg}`, 'error');
@@ -197,20 +185,6 @@ async function sendCommand(cmdName) {
     } finally {
         const btns = document.querySelectorAll('.btn-ctrl, #btn-sleep, #btn-telemetry');
         btns.forEach(b => b.disabled = false);
-    }
-}
-
-function setOpMode(mode) {
-    OPMODE_BADGE.className = 'status-badge'; // Reset classes
-    if (mode === 'sleep') {
-        OPMODE_BADGE.textContent = 'Mode: SLEEPING 💤';
-        OPMODE_BADGE.classList.add('opmode-sleep');
-    } else if (mode === 'active') {
-        OPMODE_BADGE.textContent = 'Mode: ACTIVE DRIVE 🚀';
-        OPMODE_BADGE.classList.add('opmode-active');
-    } else {
-        OPMODE_BADGE.textContent = 'Mode: Unknown';
-        OPMODE_BADGE.classList.add('opmode-unknown');
     }
 }
 
@@ -229,7 +203,7 @@ function updateTelemetry(data) {
         document.getElementById('tel-grade').innerText = t.currentGrade;
         document.getElementById('tel-hits').innerText = t.hitCount;
         document.getElementById('tel-heading').innerText = t.heading + '°';
-        
+
         // Only telemetry requests (cmd type 2) don't update the last command
         // cmd=0 with value=0 means no drive command has been executed yet
         let cmdName;
