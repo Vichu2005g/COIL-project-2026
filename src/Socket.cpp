@@ -65,8 +65,34 @@ MySocket::~MySocket()
 #endif
 }
 
+void MySocket::SetTimeout(int ms) {
+    if (ConnectionSocket == INVALID_SOCKET) return;
+#ifdef _WIN32
+    DWORD timeout = ms;
+    setsockopt(ConnectionSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+#else
+    struct timeval tv;
+    tv.tv_sec = ms / 1000;
+    tv.tv_usec = (ms % 1000) * 1000;
+    setsockopt(ConnectionSocket, SOL_SOCKET, SO_RCVTIMEO, (const struct timeval*)&tv, sizeof(tv));
+#endif
+}
+
 bool MySocket::IsConnectionSocketValid() {
     return ConnectionSocket != INVALID_SOCKET;
+}
+
+void MySocket::SetBlocking(bool blocking) {
+    if (ConnectionSocket == INVALID_SOCKET) return;
+#ifdef _WIN32
+    unsigned long mode = blocking ? 0 : 1;
+    ioctlsocket(ConnectionSocket, FIONBIO, &mode);
+#else
+    int flags = fcntl(ConnectionSocket, F_GETFL, 0);
+    if (blocking) flags &= ~O_NONBLOCK;
+    else flags |= O_NONBLOCK;
+    fcntl(ConnectionSocket, F_SETFL, flags);
+#endif
 }
 
 void MySocket::ConnectTCP()
@@ -79,8 +105,42 @@ void MySocket::ConnectTCP()
         ConnectionSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (ConnectionSocket == INVALID_SOCKET) return;
 
+        SetTimeout(1000);
+        SetBlocking(false);
+
         int result = connect(ConnectionSocket, (sockaddr*)&SvrAddr, sizeof(SvrAddr));
-        if (result == SOCKET_ERROR)
+        
+        bool connected = false;
+        if (result == 0) {
+            connected = true;
+        } else {
+#ifdef _WIN32
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK) {
+#else
+            int err = errno;
+            if (err == EINPROGRESS) {
+#endif
+                fd_set write_fds;
+                FD_ZERO(&write_fds);
+                FD_SET(ConnectionSocket, &write_fds);
+                
+                struct timeval tv;
+                tv.tv_sec = 3; // 3 second timeout for connection
+                tv.tv_usec = 0;
+                
+                if (select((int)ConnectionSocket + 1, NULL, &write_fds, NULL, &tv) > 0) {
+                    int optVal;
+                    socklen_t optLen = sizeof(int);
+                    getsockopt(ConnectionSocket, SOL_SOCKET, SO_ERROR, (char*)&optVal, &optLen);
+                    if (optVal == 0) connected = true;
+                }
+            }
+        }
+
+        SetBlocking(true);
+
+        if (!connected)
         {
             closesocket(ConnectionSocket);
             ConnectionSocket = INVALID_SOCKET;
@@ -134,6 +194,9 @@ void MySocket::ConnectUDP()
 
     ConnectionSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (ConnectionSocket == INVALID_SOCKET) return;
+
+    // Set 1000ms timeout for robustness
+    SetTimeout(1000);
 
     if (mySocket == SERVER)
     {

@@ -16,6 +16,8 @@
     #include <netinet/in.h>
     #include <arpa/inet.h>
     #include <unistd.h>
+    #include <sys/time.h>
+    #include <fcntl.h>
     typedef int SOCKET;
     #define INVALID_SOCKET  (SOCKET)(~0)
     #define SOCKET_ERROR            (-1)
@@ -52,6 +54,8 @@ private:
     bool bTCPConnect;
     int MaxSize;
 
+    void SetBlocking(bool blocking);
+
 public:
     MySocket(SocketType type, std::string ip, unsigned int port, ConnectionType connType, unsigned int size = DEFAULT_SIZE);
     ~MySocket();
@@ -63,6 +67,7 @@ public:
     void DisconnectUDP();
     void SendData(const char* data, int len);
     int GetData(char* dest);
+    void SetTimeout(int ms);
 
     std::string GetIPAddr();
     void SetIPAddr(std::string ip);

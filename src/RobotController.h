@@ -32,17 +32,25 @@ public:
     std::string getIP() const { return ipAddr; }
     int getPort() const { return port; }
     std::string getProtocol() const { return protocol; }
+    int getSentCount() const { return sentCount; }
+    int getAckOKCount() const { return ackOKCount; }
+    int getAckBadCount() const { return ackBadCount; }
+    int getPktCount() const { return pktCounter; }
 
 private:
-    bool executeTransaction(PktDef& pkt, std::string& outMessage, bool& outAck, int& outPktCount);
+    bool executeTransaction(PktDef& pkt, std::string& outMessage, bool& outAck, int& outPktCount, char* outData = nullptr);
     std::string getTimestamp();
 
     std::string ipAddr;
     int port;
     std::string protocol;
     int pktCounter;
+    int sentCount;
+    int ackOKCount;
+    int ackBadCount;
 
     MySocket* socket;
     std::vector<LogEntry> logs;
     std::mutex logMutex;
+    std::mutex transactionMutex;
 };

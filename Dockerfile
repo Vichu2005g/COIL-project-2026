@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     libasio-dev \
+    libcurl4-openssl-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +36,9 @@ FROM ubuntu:22.04
 
 # Set working directory
 WORKDIR /app
+
+# Install curl runtime library for routing table HTTP forwarding
+RUN apt-get update && apt-get install -y libcurl4 && rm -rf /var/lib/apt/lists/*
 
 # Copy the executable from the builder stage
 COPY --from=builder /app/build/RobotControlServer .

@@ -1,11 +1,8 @@
 #include "RobotController.h"
 #include <ctime>
-#include <iomanip>
-#include <sstream>
-#include <thread>
-#include <chrono>
+#include <cstring>
 
-RobotController::RobotController() : ipAddr(""), port(0), protocol("udp"), pktCounter(0), socket(nullptr) {}
+RobotController::RobotController() : ipAddr(""), port(0), protocol("udp"), pktCounter(0), sentCount(0), ackOKCount(0), ackBadCount(0), socket(nullptr) {}
 
 RobotController::~RobotController() {
     if (socket) {
@@ -15,25 +12,38 @@ RobotController::~RobotController() {
 }
 
 bool RobotController::configure(const std::string& ip, int port, const std::string& protocol) {
-    this->ipAddr = ip;
+    ipAddr = ip;
     this->port = port;
-    this->protocol = (protocol == "tcp") ? "tcp" : "udp";
+    this->protocol = protocol;
 
-    if (socket) {
-        delete socket;
-    }
-
-    ConnectionType connType = (this->protocol == "tcp") ? TCP : UDP;
-    socket = new MySocket(CLIENT, this->ipAddr, this->port, connType, 1024);
-
-    if (connType == TCP) {
+    if (socket) delete socket;
+    
+    if (protocol == "tcp") {
+        socket = new MySocket(CLIENT, ipAddr, port, TCP);
         socket->ConnectTCP();
     } else {
+        socket = new MySocket(CLIENT, ipAddr, port, UDP);
         socket->ConnectUDP();
     }
 
+    // Handshake: Try to get telemetry to verify robot is alive
+    std::string msg;
+    bool ack;
+    int pcount;
+    TelemetryBody tel;
+    bool alive = requestTelemetry(msg, ack, pcount, tel);
+
+    if (!alive) {
+        // If it failed, we clean up
+        if (socket) {
+            delete socket;
+            socket = nullptr;
+        }
+        return false;
+    }
+
     addLog("CONFIG", "IP: " + ip + " Port: " + std::to_string(port) + " Protocol: " + this->protocol);
-    return socket->IsConnectionSocketValid();
+    return true;
 }
 
 bool RobotController::sendDrive(int direction, int duration, int power, std::string& outMessage, bool& outAck, int& outPktCount) {
@@ -91,41 +101,70 @@ bool RobotController::sendSleep(std::string& outMessage, bool& outAck, int& outP
 bool RobotController::requestTelemetry(std::string& outMessage, bool& outAck, int& outPktCount, TelemetryBody& outTelemetry) {
     if (!socket || !socket->IsConnectionSocketValid()) return false;
 
+    std::lock_guard<std::mutex> lock(transactionMutex);
+    sentCount++;
+
     PktDef pkt;
     pkt.SetPktCount(++pktCounter);
     pkt.SetCmd(RESPONSE);
     pkt.SetBodyData(nullptr, 0);
+    pkt.CalcCRC();
+
+    char* raw = pkt.GenPacket();
+    int totalLen = pkt.GetLength() + 1;
+    socket->SendData(raw, totalLen);
 
     addLog("SEND", "Cmd: TELEMETRY Pkt: " + std::to_string(pktCounter));
 
-    bool success = executeTransaction(pkt, outMessage, outAck, outPktCount);
-
-    if (success) {
-        // Wait briefly for response data
+    // Robot may send ACK first, then telemetry data — try reading up to 2 times
+    for (int attempt = 0; attempt < 2; attempt++) {
         char recvBuf[1024] = { 0 };
         int rlen = socket->GetData(recvBuf);
-        if (rlen > 0) {
-            PktDef resp(recvBuf);
-            if (resp.IsTelemetry()) {
-                outTelemetry = resp.GetTelemetryData();
-                addLog("RECV", "Telemetry data received for Pkt: " + std::to_string(outPktCount));
-                return true;
-            }
+
+        if (rlen <= 0) {
+            // Timeout on this read
+            break;
         }
+
+        PktDef resp(recvBuf);
+        outPktCount = resp.GetPktCount();
+
+        if (!resp.CheckCRC(recvBuf, rlen)) {
+            ackBadCount++;
+            outMessage = "CRC Error";
+            addLog("RECV", "CRC ERROR Pkt: " + std::to_string(outPktCount));
+            continue;
+        }
+
+        if (resp.IsTelemetry()) {
+            // Got the telemetry data we wanted
+            outTelemetry = resp.GetTelemetryData();
+            outAck = true;
+            outMessage = "Telemetry Received";
+            ackOKCount++;
+            addLog("RECV", "Telemetry data received Pkt: " + std::to_string(outPktCount));
+            return true;
+        }
+
+        // Got an ACK packet — log it and try reading again for the telemetry body
+        outAck = resp.GetAck();
+        if (outAck) ackOKCount++; else ackBadCount++;
+        addLog("RECV", std::string(outAck ? "ACK" : "NACK") + " (waiting for telemetry) Pkt: " + std::to_string(outPktCount));
     }
+
+    ackBadCount++;
+    outMessage = "Timeout - No telemetry received";
+    addLog("RECV", "TIMEOUT - No telemetry for Pkt: " + std::to_string(pktCounter));
     return false;
 }
 
-bool RobotController::executeTransaction(PktDef& pkt, std::string& outMessage, bool& outAck, int& outPktCount) {
+bool RobotController::executeTransaction(PktDef& pkt, std::string& outMessage, bool& outAck, int& outPktCount, char* outData) {
+    std::lock_guard<std::mutex> lock(transactionMutex);
+    sentCount++;
     char* raw = pkt.GenPacket();
     int totalLen = pkt.GetLength() + 1;
 
     socket->SendData(raw, totalLen);
-
-    // Give simulator or robot time to respond
-    // In a real REST server this might need to be shorter or non-blocking,
-    // but for the simulator demo it's fine.
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     char recvBuf[1024] = { 0 };
     int rlen = socket->GetData(recvBuf);
@@ -137,14 +176,26 @@ bool RobotController::executeTransaction(PktDef& pkt, std::string& outMessage, b
         outPktCount = resp.GetPktCount();
 
         if (crcOK) {
-            outMessage = outAck ? "ACK Received" : "NACK Received";
+            if (outData) memcpy(outData, recvBuf, rlen);
+            
+            // If it's a telemetry packet, use specialized message, else use ACK/NACK
+            if (resp.IsTelemetry()) {
+                outMessage = "Telemetry Received";
+                outAck = true;
+            } else {
+                outMessage = outAck ? "ACK Received" : "NACK Received";
+            }
+
             addLog("RECV", std::string(outAck ? "ACK" : "NACK") + " Received for Pkt: " + std::to_string(outPktCount));
+            if (outAck) ackOKCount++; else ackBadCount++;
         } else {
+            ackBadCount++;
             outMessage = "CRC Error";
             addLog("RECV", "CRC ERROR for Pkt: " + std::to_string(outPktCount));
         }
         return true;
     } else {
+        ackBadCount++;
         outMessage = "Timeout - No response";
         addLog("RECV", "TIMEOUT - No response for Pkt: " + std::to_string(pktCounter));
         return false;

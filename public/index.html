@@ -11,10 +11,31 @@
     <div class="container">
         <header>
             <div class="logo">
-                <h1>COIL<span>NAV</span></h1>
+                <h1>COIL<span> GROUP 11</span></h1>
                 <p>Robot Command & Control GUI</p>
             </div>
-            <div id="connection-status" class="status-badge disconnected">Disconnected</div>
+            <div class="session-stats">
+                <div class="stat-box">
+                    <span class="stat-label">Sent</span>
+                    <span class="stat-val" id="stat-sent">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Accepted</span>
+                    <span class="stat-val success" id="stat-accepted">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Rejected</span>
+                    <span class="stat-val error" id="stat-rejected">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Packet #</span>
+                    <span class="stat-val highlight" id="stat-pkt">0</span>
+                </div>
+            </div>
+            <div class="header-badges">
+                <div id="connection-status" class="status-badge disconnected">Disconnected</div>
+                <div id="opmode-status" class="status-badge opmode-unknown hidden">Mode: Unknown</div>
+            </div>
         </header>
 
         <main class="dashboard">
@@ -22,13 +43,13 @@
             <section id="connection" class="glass-card">
                 <h2>Network Configuration</h2>
                 <div class="form-group row">
-                    <div class="input-wrap">
-                        <label for="ip">Robot IP Address</label>
-                        <input type="text" id="ip" value="127.0.0.1" placeholder="0.0.0.0">
+                    <div class="input-group">
+                        <label for="ip">Robot IP</label>
+                        <input type="text" id="ip" value="10.172.41.150" placeholder="e.g., 127.0.0.1">
                     </div>
-                    <div class="input-wrap">
-                        <label for="port">Control Port</label>
-                        <input type="number" id="port" value="29500">
+                    <div class="input-group">
+                        <label for="port">Port</label>
+                        <input type="number" id="port" value="29500" placeholder="e.g., 29500">
                     </div>
                 </div>
                 <div class="form-group">
@@ -44,6 +65,8 @@
             <!-- Control Section -->
             <section id="controls" class="glass-card">
                 <h2>Drive Commands</h2>
+                <div id="drive-error" class="widget-error hidden"></div>
+                
                 <div class="control-grid">
                     <div class="drive-params">
                         <div class="input-wrap">
@@ -76,6 +99,8 @@
             <!-- Telemetry Section -->
             <section id="telemetry" class="glass-card">
                 <h2>Housekeeping Telemetry</h2>
+                <div id="telemetry-error" class="widget-error hidden"></div>
+                
                 <div class="telemetry-grid">
                     <div class="tel-item">
                         <span class="label">Pkt Counter</span>
@@ -97,9 +122,30 @@
                 <div class="last-cmd-info">
                     <p>Last Command: <span id="last-cmd-name">None</span></p>
                     <div class="mini-stats">
-                        <span>Val: <b id="last-cmd-val">-</b></span>
-                        <span>Power: <b id="last-cmd-power">-</b></span>
+                        <span>Direction: <b id="last-cmd-val">-</b></span>
+                        <span>Motor Power: <b id="last-cmd-power">-</b></span>
                     </div>
+                </div>
+            </section>
+
+            <!-- Routing Table Section -->
+            <section id="routing" class="glass-card">
+                <h2>Packet Routing Table</h2>
+                <p class="routing-desc">Forward commands to another COIL Web Service instance (e.g. Fonty University).</p>
+                <div id="routing-status" class="routing-badge disabled">Routing Disabled</div>
+                <div class="form-group row">
+                    <div class="input-group">
+                        <label for="route-ip">Next-Hop IP</label>
+                        <input type="text" id="route-ip" placeholder="e.g., 192.168.1.100">
+                    </div>
+                    <div class="input-group">
+                        <label for="route-port">Port</label>
+                        <input type="number" id="route-port" value="6769" placeholder="6769">
+                    </div>
+                </div>
+                <div class="routing-buttons">
+                    <button id="btn-route-enable" class="btn-primary">Enable Routing</button>
+                    <button id="btn-route-disable" class="btn-warn">Disable Routing</button>
                 </div>
             </section>
 

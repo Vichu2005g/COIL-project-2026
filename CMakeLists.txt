@@ -31,7 +31,8 @@ set(SOURCES
 add_executable(RobotControlServer ${SOURCES})
 
 # Link libraries
-target_link_libraries(RobotControlServer ${LIBS} Threads::Threads)
+find_package(CURL REQUIRED)
+target_link_libraries(RobotControlServer ${LIBS} Threads::Threads CURL::libcurl)
 
 # Static assets (copy or ensure accessible)
 # In Docker, we will copy them to the same directory as the executable.
