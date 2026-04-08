@@ -253,7 +253,7 @@ int main() {
                 res["target_ip"] = routingTarget.ip;
                 res["target_port"] = routingTarget.port;
                 res["message"] = routingTarget.enabled
-                    ? "Routing active → " + routingTarget.ip + ":" + to_string(routingTarget.port)
+                    ? "Routing active -> " + routingTarget.ip + ":" + to_string(routingTarget.port)
                     : "Routing disabled.";
 
             } else if (req.method == crow::HTTPMethod::POST) {
@@ -269,12 +269,12 @@ int main() {
                     string pingErr;
                     bool reachable = pingTarget(newIp, newPort, pingErr);
                     if (!reachable) {
-                        // Target not reachable — do NOT enable routing
+                        // Target not reachable - do NOT enable routing
                         res["success"] = false;
                         res["enabled"] = false;
                         res["target_ip"] = newIp;
                         res["target_port"] = newPort;
-                        res["message"] = "Cannot reach " + newIp + ":" + to_string(newPort) + " — " + pingErr;
+                        res["message"] = "Cannot reach " + newIp + ":" + to_string(newPort) + " - " + pingErr;
                         return crow::response(res);
                     }
                 }
@@ -289,7 +289,7 @@ int main() {
                 res["target_ip"]   = routingTarget.ip;
                 res["target_port"] = routingTarget.port;
                 res["message"] = routingTarget.enabled
-                    ? "Routing enabled → " + routingTarget.ip + ":" + to_string(routingTarget.port)
+                    ? "Routing enabled -> " + routingTarget.ip + ":" + to_string(routingTarget.port)
                     : "Routing disabled.";
 
             } else if (req.method == crow::HTTPMethod::Delete) {

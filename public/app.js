@@ -2,6 +2,7 @@ const IP_EL = document.getElementById('ip');
 const PORT_EL = document.getElementById('port');
 const PROTO_EL = document.getElementById('protocol');
 const STATUS_EL = document.getElementById('connection-status');
+const OPMODE_BADGE = document.getElementById('opmode-status');
 const LOG_VIEW = document.getElementById('log-view');
 const POWER_VAL = document.getElementById('power-val');
 const POWER_EL = document.getElementById('power');
@@ -74,6 +75,8 @@ document.getElementById('btn-connect').addEventListener('click', async () => {
             isConnected = true;
             STATUS_EL.innerText = 'Connected';
             STATUS_EL.className = 'status-badge connected';
+            OPMODE_BADGE.classList.remove('hidden');
+            setOpMode('unknown');
             addLog('SYSTEM', result.message);
             updateStats(result.stats);
             hideErrors();
@@ -81,12 +84,14 @@ document.getElementById('btn-connect').addEventListener('click', async () => {
             isConnected = false;
             STATUS_EL.innerText = 'Disconnected';
             STATUS_EL.className = 'status-badge disconnected';
+            OPMODE_BADGE.classList.add('hidden');
             addLog('SYSTEM', result.message, 'error');
             showError(result.message);
         }
     } catch (err) {
         isConnected = false;
         STATUS_EL.innerText = 'Disconnected';
+        OPMODE_BADGE.classList.add('hidden');
         addLog('SYSTEM', 'Connection Failed: ' + err.message, 'error');
         showError('Network Error: Could not reach server.');
     } finally {
@@ -174,6 +179,12 @@ async function sendCommand(cmdName) {
         updateStats(result.stats);
         if (result.success && result.ack) {
             addLog('ACK', `${cmdName.toUpperCase()} - ${result.message}`);
+            
+            if (cmdName === 'sleep') {
+                setOpMode('sleep');
+            } else if (['forward', 'backward', 'left', 'right'].includes(cmdName)) {
+                setOpMode('active');
+            }
         } else {
             const errMsg = result.message || 'Operation Failed';
             addLog('NACK', `${cmdName.toUpperCase()} - ${errMsg}`, 'error');
@@ -185,6 +196,20 @@ async function sendCommand(cmdName) {
     } finally {
         const btns = document.querySelectorAll('.btn-ctrl, #btn-sleep, #btn-telemetry');
         btns.forEach(b => b.disabled = false);
+    }
+}
+
+function setOpMode(mode) {
+    OPMODE_BADGE.className = 'status-badge'; // Reset classes
+    if (mode === 'sleep') {
+        OPMODE_BADGE.textContent = 'Mode: SLEEPING';
+        OPMODE_BADGE.classList.add('opmode-sleep');
+    } else if (mode === 'active') {
+        OPMODE_BADGE.textContent = 'Mode: ACTIVE DRIVE';
+        OPMODE_BADGE.classList.add('opmode-active');
+    } else {
+        OPMODE_BADGE.textContent = 'Mode: Unknown';
+        OPMODE_BADGE.classList.add('opmode-unknown');
     }
 }
 
@@ -248,11 +273,11 @@ async function setRouting(enabled) {
         const result = await res.json();
 
         if (result.success && result.enabled) {
-            ROUTING_STATUS.textContent = `Routing Active → ${result.target_ip}:${result.target_port}`;
+            ROUTING_STATUS.textContent = `Routing Active -> ${result.target_ip}:${result.target_port}`;
             ROUTING_STATUS.className = 'routing-badge enabled';
-            addLog('ROUTE', `Routing enabled → ${result.target_ip}:${result.target_port}`);
+            addLog('ROUTE', `Routing enabled -> ${result.target_ip}:${result.target_port}`);
         } else if (!result.success) {
-            ROUTING_STATUS.textContent = 'Routing Failed — Target Unreachable';
+            ROUTING_STATUS.textContent = 'Routing Failed - Target Unreachable';
             ROUTING_STATUS.className = 'routing-badge disabled';
             addLog('ROUTE', `Routing failed: ${result.message}`, 'error');
         } else {

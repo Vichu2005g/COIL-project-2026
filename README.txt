@@ -1,28 +1,23 @@
-COIL Robot Control Center - Milestone 3
+COIL Robot Command & Control GUI - Milestone 3
 --------------------------------------
 
-This project has been restructured to facilitate the RESTful web server implementation using Crow.
+To build and run the Robot Command & Control GUI using Docker, open your terminal (PowerShell, CMD, or bash) inside the root directory and run:
 
-Project Structure:
-- src/              : Backend source code (main.cpp, RobotController, Packet, Socket)
-- public/           : Frontend assets (index.html, style.css, app.js)
-- external/         : External dependencies (Add crow_all.h here)
+1. Build the Docker Image:
+docker build -t coil-robot-gui .
 
-Compilation Instructions:
-1. Ensure you have 'crow_all.h' in the 'external/' directory.
-2. Open the solution in Visual Studio.
-3. Update the Project configuration to include:
-   - Additional Include Directories: ./src; ./external
-   - Linker Dependencies: ws2_32.lib
-4. Ensure your compiler is set to C++17 or later.
-5. Build and Run.
+2. Run the Container:
+docker run -d --rm -p 6769:6769 --name robot-gui-final coil-robot-gui
 
-Execution Instructions:
-1. Once the server is running, it will listen on http://localhost:18080.
-2. Open Robot_Simulator.exe in a separate terminal.
-3. Open a web browser and navigate to http://localhost:18080.
-4. Input the IP (e.g., 127.0.0.1) and Port (e.g., 29500) and click 'Initialize Connection'.
-5. Use the GUI to send Drive, Sleep, and Telemetry commands.
+3. Access the GUI:
+Once the container is running, open any web browser and navigate to: http://localhost:6769
 
-Logging:
-Packet traffic is logged both in the server console and displayed in the 'Packet Traffic Log' section of the web GUI.
+4. Connect to Robot Simulator (Or physical robot):
+On the GUI, enter IP: 10.172.41.150 (Or 127.0.0.1 for local testing) and Port: 29500 (UDP).
+Click 'Initialize Connection' to begin routing commands.
+
+5. Stopping the Application:
+docker stop robot-gui-final
+
+6. Fast Re-deploy (Development Tip):
+docker build -t coil-robot-gui . ; docker rm -f robot-gui-final ; docker run -d --rm -p 6769:6769 --name robot-gui-final coil-robot-gui
